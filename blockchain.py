@@ -3,6 +3,7 @@ import hashlib
 import json
 import flask
 from flask import Flask, jsonify
+import sys
 
 class Blockchain:
     
@@ -60,7 +61,7 @@ app = Flask(__name__)
 
 blockchain = Blockchain()
 
-@app.route('/mine_block', methods = 'GET')
+@app.route('/mine_block', methods = ['GET'])
 def mine_block():
     previous_block = blockchain.get_previous_block()
     previous_proof = previous_block['proof']
@@ -72,8 +73,19 @@ def mine_block():
                 'timestamp': block['timestamp'],
                 'proof': block['proof'],
                 'previous_hash': block['previous_hash']}
+    
     return jsonify(response), 200
 
+@app.route('/get_chain', methods = ['GET'])
+def get_chain():
+    print('This is standard output', file=sys.stdout)
+    response = {'chain': blockchain.chain,
+                'length': len(blockchain.chain)}
+    print('Worked', file=sys.stdout)
+
+    return jsonify(response), 200
+
+app.run(host = '0.0.0.0', port = 5000, debug=True)
 
 
 
