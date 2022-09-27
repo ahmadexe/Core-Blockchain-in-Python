@@ -39,7 +39,6 @@ class Blockchain:
     
         return hashlib.sha256(encoded_block).hexdigest()
     
-    
     def is_chain_valid(self, chain):
         previous_block = chain[0]
         block_index = 1
@@ -87,37 +86,3 @@ def get_chain():
     return jsonify(response), 200
 
 app.run(host = '0.0.0.0', port = 5000, debug=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            
