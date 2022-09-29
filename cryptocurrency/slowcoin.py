@@ -74,112 +74,59 @@ class Blockchain:
         })
         previous_block = self.get_previous_block()
         return previous_block['index'] + 1
-        
+
     def add_nodes(self, address):
-        parsedURL = urlparse(address)                                                                   #parses the url
-        self.nodes.add(parsedURL.netloc) 
-        
-    def replace_chain(self):                                                                            #The longest chain wins and replaces the shorter chain in all of the nodes
+        parse_url = urlparse(address)
+        self.nodes.add(parse_url.netloc)
+
+    def replace_chain(self):
         network = self.nodes
-        logestChain = None
-        maxlen = len(self.chain)
+        longest_chain = None
+        max_length = len(self.chain)
         for node in network:
-            response = requests.get(f"http://{node}/chain_get")
-            if(response.status_code == 200):
-                len = reponse.json()['length']
-                chain = reponse.json()['chain']
-                if(maxlen < len and self.chain_valid(chain)):
-                    maxlen = len
-                    logestChain = chain
-        if longestChain:
-            self.chain = longestChain
+            response = requests.get(f'https://{node}/get_chain')
+            if response.status_code == 200:
+                length = response.json()['length']
+                chain = response.json()['chain']
+                if (length > max_length and self.is_chain_valid(chain)):
+                    max_length = length
+                    longest_chain = chain
+
+        if longest_chain:
+            self.chain = longest_chain
             return True
         return False
 
 
 # Interacting with the blockchain, using Flask
-#Web App with flask
+# Web App with flask
 app = Flask(__name__)
 
-#Creating the initial address for the node on port 5000
-nodeAddress = str(uuid4()).replace('-','')
+blockchain = Blockchain()
 
-#Making the blockchain instance
-bchain = blockchain()
 
-#Web page for mining a new block
-@app.route('/block_mine', methods = ['GET'])
-def block_mine():
-    prev_block = bchain.get_prev_block()
-    prev_proof = prev_block['proof']
-    proof = bchain.pow(prev_proof)
-    prev_hash = bchain.hash(prev_block)
-    bchain.add_transactions(sender = nodeAddress, receiver = 'Naman', amount = 0.5)
-    block = bchain.create_block(proof, prev_hash)
-    response = {'msg': 'Successfully mined a block!',
+@app.route('/mine_block', methods=['GET'])
+def mine_block():
+    previous_block = blockchain.get_previous_block()
+    previous_proof = previous_block['proof']
+    proof = blockchain.proof_of_work(previous_proof)
+    previous_hash = blockchain.hash_block(previous_block)
+    block = blockchain.create_block(proof, previous_hash)
+    response = {'message': 'Block has been created',
                 'index': block['index'],
                 'timestamp': block['timestamp'],
                 'proof': block['proof'],
-                'previous_hash': block['previous_hash'],
-                'transactions': block['transactions']
-    }
-    return jsonify(response), 200                                   #jsonify(response) converts the dictionary response to a json file and code 200 is an http status code which means the request was successful.
+                'previous_hash': block['previous_hash']}
 
-@app.route('/chain_get', methods = ['GET'])
-def chain_get():
-    response = {'chain': bchain.chain,
-                'length': len(bchain.chain)
-    }
-    return jsonify(response), 200
-
-@app.route('/if_valid', methods = ['GET'])                          #Checks if the chain is valid, basically just calls the chain_valid function from class blockchain
-def if_valid():
-    valid = bchain.chain_valid(bchain.chain)
-    if(valid):
-        response = {'msg:': "Blockchain is valid!"}
-    else:
-        response = {'msg:': "Blockchain is not valid!"}
-    return jsonify(reponse), 200
-
-@pp.route('/add_transaction', methods = ['POST'])                   #Add a transaction
-def add_transaction():
-        json = request.get_json()
-        transaction_keys = ['senser','receiver','amount']
-        if not all(key in json for key in transaction_keys):
-            return 'Some fields are missing in the transaction', 400
-        index = bchain.add_transactions(json['sender'], json['receiver'], json['amount'])
-        response = {'message': f"Transaction added to Block {index}"}
-        return jsonify(response), 201                               #201 is for creation, 200 can be used as well... does not matter
-
-
-#Decentralizing the Blockchain
-
-#Connecting the new Nodes
-@app.route('/connect_node', methods = ['POST'])
-def add_connect_node():
-    json = request.get_json()
-    nodes = json.get('nodes')
-    if nodes is None:
-        return "No Node", 400
-    for node in nodes:
-        bchain.add_node(node)
-    response = {'message':"The new nodes are connected!",
-                'Total Nodes':list(bchain.nodes)
-                }
-    return jsonify(response), 201
-
-@app.route('/replace_chain', methods = ['GET'])
-def replace_chain():
-    if bchain.replace_chain():
-        response = {'message':"The longest chain replaced the shorter chains in some nodes.",
-                    'new_chain':bchain.chain}
-    else:
-        response = {'message':"All good! This chain is the largest one.",
-                    'longest_chain':bchain.chain}
     return jsonify(response), 200
 
 
+@app.route('/get_chain', methods=['GET'])
+def get_chain():
+    response = {'chain': blockchain.chain,
+                'length': len(blockchain.chain)}
+
+    return jsonify(response), 200
 
 
-app.run(host = '0.0.0.0', port = 5000)                              #Runs the app publicly on your server
-Footer
+app.run(host='0.0.0.0', port=5000, debug=True)
