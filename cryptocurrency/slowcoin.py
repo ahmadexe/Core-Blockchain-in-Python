@@ -45,7 +45,6 @@ class Blockchain:
 
     def hash_block(self, block):
         encoded_block = json.dump(block, sort_keys=True).encode()
-
         return hashlib.sha256(encoded_block).hexdigest()
 
     def is_chain_valid(self, chain):
@@ -102,6 +101,7 @@ class Blockchain:
 # Web App with flask
 app = Flask(__name__)
 
+node_address = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 
 
@@ -111,12 +111,14 @@ def mine_block():
     previous_proof = previous_block['proof']
     proof = blockchain.proof_of_work(previous_proof)
     previous_hash = blockchain.hash_block(previous_block)
+    blockchain.add_transaction(sender= node_address, receiver= "Ahmad", amount= 1)
     block = blockchain.create_block(proof, previous_hash)
     response = {'message': 'Block has been created',
                 'index': block['index'],
                 'timestamp': block['timestamp'],
                 'proof': block['proof'],
-                'previous_hash': block['previous_hash']}
+                'previous_hash': block['previous_hash'],
+                'transactions': block['transactions'],}
 
     return jsonify(response), 200
 
